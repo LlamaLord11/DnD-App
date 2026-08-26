@@ -1,4 +1,3 @@
-```markdown
 # D&D App
 
 A simple app for organizing and managing your Dungeons & Dragons adventures.
@@ -15,4 +14,3 @@ Download the app from your mobile devices relevant appstore
 ## Development
 
 The project does not yet support the local phone client, app development will follow server development.
-```
