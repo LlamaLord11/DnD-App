@@ -1,2 +1,5 @@
-# Gitignore File
+# Enviornment/Secrets
 .env
+
+# Database
+*.db
