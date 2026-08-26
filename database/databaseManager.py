@@ -34,7 +34,7 @@ CREATE INDEX index_changelog_version ON changelog (version_id)
 """
 
 class Database:
-    def __init__(self) -> bool:
+    def __init__(self):
         try:
             self.connection = sqlite3.connect('mainDatabase.db')
             self.cursor = self.connection.cursor()
@@ -42,12 +42,12 @@ class Database:
             self.connection.executescript(SQL_SCHEMA)
 
             print(self.connectionVerifier(self.cursor))
-            return True
+            self.databaseInitialized = True
         except sqlite3.Error as error:
             print('An Error Occured on Database Initialization: ', error)
-            return False
-        
-    def connectionVerifier(cursor):
+            self.databaseInitialized = False
+
+    def connectionVerifier(self, cursor):
         basicQuery = 'SELECT sqlite_version();'
         cursor.execute(basicQuery)
         
@@ -57,15 +57,15 @@ class Database:
     def writeVersion(self, versionDescription: str, version: dict):
         print()
 
-    def readSingleVersion(self, version: str) -> list:
+    def readSingleVersion(self, version: int) -> list:
         """Returns a LIST of all changelog entries pertaining to the provided version.
         \nFORMAT: [ internal_id (autoincriment SQL index), version_id, content_type (item/class), content_id (specific entry ID), change_type (ADD/EDIT/DELETE), contents ]"""
-        self.cursor.execute('SELECT * FROM changelog WHERE version_id = ?', (int(version),))
+        self.cursor.execute('SELECT * FROM changelog WHERE version_id = ?', (version,))
         versionList = self.cursor.fetchall()
 
         return versionList
 
-    def versionListFormatter(versionList):
+    def versionListFormatter(self, versionList):
         """Outputs a list of lists. Each internal list represents 1 entry
         \nENTRY FORMATTING: change_type (ADD + / EDIT > / DELETE -), content_type (item i / class c), content_id, content"""
 
@@ -96,10 +96,10 @@ class Database:
         self.cursor.execute('SELECT version_id FROM version_control')
         listOfVersions = self.cursor.fetchall()
 
-        for versionID in listOfVersions:
+        for (versionID,) in listOfVersions:
             currentVersion = self.readSingleVersion(versionID)
             formattedVersion = self.versionListFormatter(currentVersion)
-            versionCache[int(versionID)] = formattedVersion
+            versionCache[versionID] = formattedVersion
 
         return versionCache
 
