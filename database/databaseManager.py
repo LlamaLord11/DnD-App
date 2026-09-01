@@ -54,7 +54,11 @@ class Database:
         result = cursor.fetchall()
         return('SQLite is running and the version is {}'.format(result[0][0]))
 
-    def writeVersion(self, versionDescription: str, version: dict):
+    def writeVersion(self, versionDescription: str, version: list):
+        """versionDescription: Description of the version
+        version: A List of Lists containing the updates being made in the new version
+        version format: 
+        """
         print()
 
     def readSingleVersion(self, version: int) -> list:
