@@ -1,6 +1,10 @@
 import sqlite3
 import json
 
+'''
+Going to need a broad scale modification of systems to account for the write system
+'''
+
 SQL_SCHEMA = """
 CREATE TABLE IF NOT EXISTS version_control (
     version_id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -19,6 +23,13 @@ CREATE TABLE IF NOT EXISTS items (
     item_name TEXT NOT NULL,
     item_type TEXT NOT NULL,
     item_description TEXT
+);
+
+CREATE TABLE IF NOT EXISTS spells (
+    spell_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    spell_name TEXT NOT NULL,
+    spell_school TEXT,
+    spell_description TEXT,
 );
 
 CREATE TABLE IF NOT EXISTS changelog (
@@ -54,12 +65,16 @@ class Database:
         result = cursor.fetchall()
         return('SQLite is running and the version is {}'.format(result[0][0]))
 
-    def writeVersion(self, versionDescription: str, version: list):
+    # System Writing Pipeline Mockup
+    # OVERVIEW: JSON File -> list -> database write
+
+    def databaseWriter(self, versionDescription: str, version: list):
         """versionDescription: Description of the version
         version: A List of Lists containing the updates being made in the new version
-        version format: 
+        version format: [Version Description], LIST OF ROWS : [ROW FORMAT: change_type (ADD/EDIT/DELETE), content_type (item/class), content_id, content]
+
+        Note: Edits and Deletes are done by content_id
         """
-        print()
 
     def readSingleVersion(self, version: int) -> list:
         """Returns a LIST of all changelog entries pertaining to the provided version.

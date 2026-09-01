@@ -1,0 +1,15 @@
+{
+    "comment1": "Note that the database_edit_type(s) are ADD/EDIT/DELETE",
+    "comment2": "When adding to the database, the edit/delete commands will default to using the ID but will also accept just a name",
+    "comment3": "An error will be thrown if an EDIT/DELETE would fail if no ID was provided in an update and 2 items share the same table and name (ex: 2 spells with the same name)",
+    "comment4": "On optional database fields, just leave the array entry empty, denoted simply by empty quotations",
+    "comment5": "NOTE: the lists within contents are Lists OF lists. For multiple enteries within 1 entry type, just add another sublist within the overarching list",
+    "comment6": "Example multientry of one type: class: [[ADD, empty, Barbarian, RAHHH], [EDIT, 2, empty, A guy who casts spells], etc...]",
+
+    "version_description": "",
+    "contents": {
+        "classes": [["database_edit_type", "class_id", "class_name", "class_description"]],
+        "items": [["database_edit_type", "item_id", "item_name", "item_type", "item_description"]],
+        "spells": [["database_edit_type", "spell_id", "spell_name", "spell_school", "spell_description"]]
+    }
+}
