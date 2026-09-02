@@ -68,17 +68,32 @@ class Database:
     # System Writing Pipeline Mockup
     # OVERVIEW: JSON File -> list -> database write
 
+    def jsonFileReader(self, path: str):
+        """path MUST be a raw string"""
+        try:
+            with open(path) as file:
+                        file = json.load(file)
+
+            return file
+        except:
+            return False
+
     def databaseWriter(self, versionDescription: str, version: list):
         """versionDescription: Description of the version
         version: A List of Lists containing the updates being made in the new version
-        version format: [Version Description], LIST OF ROWS : [ROW FORMAT: change_type (ADD/EDIT/DELETE), content_type (item/class), content_id, content]
+        version format: [Version Description], LIST OF ROWS : [format varies by table]
 
         Note: Edits and Deletes default to content_id if there is no matching name, or multiple of the same named table rows
         """
 
-        with open(r'database\jsonInputFormat.json') as file:
-            file = json.load(file)
-            print(file)
+    def databaseADD(self, table: str, column_list: list, input_values: list):
+        self.cursor.execute(f'INSERT INTO {table} ({column_list}) VALUES ({input_values})')
+
+    def databaseEDIT(self, table: str, column_list: list, input_values: list):
+        print()
+
+        
+        
 
     def readSingleVersion(self, version: int) -> list:
         """Returns a LIST of all changelog entries pertaining to the provided version.
