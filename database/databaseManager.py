@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS spells (
     spell_id INTEGER PRIMARY KEY AUTOINCREMENT,
     spell_name TEXT NOT NULL,
     spell_school TEXT,
-    spell_description TEXT,
+    spell_description TEXT
 );
 
 CREATE TABLE IF NOT EXISTS changelog (
@@ -73,8 +73,12 @@ class Database:
         version: A List of Lists containing the updates being made in the new version
         version format: [Version Description], LIST OF ROWS : [ROW FORMAT: change_type (ADD/EDIT/DELETE), content_type (item/class), content_id, content]
 
-        Note: Edits and Deletes are done by content_id
+        Note: Edits and Deletes default to content_id if there is no matching name, or multiple of the same named table rows
         """
+
+        with open(r'database\jsonInputFormat.json') as file:
+            file = json.load(file)
+            print(file)
 
     def readSingleVersion(self, version: int) -> list:
         """Returns a LIST of all changelog entries pertaining to the provided version.
@@ -125,3 +129,6 @@ class Database:
 
     def close(self):
         self.connection.close()
+
+db = Database()
+db.databaseWriter("dummystring", ['dummyList'])
