@@ -35,7 +35,7 @@ CREATE TABLE IF NOT EXISTS spells (
 CREATE TABLE IF NOT EXISTS changelog (
     internal_id INTEGER PRIMARY KEY AUTOINCREMENT,
     version_id INTEGER NOT NULL REFERENCES version_control(version_id),
-    content_type TEXT NOT NULL CHECK (content_type IN ('item', 'class')),
+    content_type TEXT NOT NULL CHECK (content_type IN ('item', 'class', 'spell')),
     content_id INTEGER NOT NULL,
     change_type TEXT NOT NULL CHECK (change_type IN ('ADD', 'EDIT', 'DELETE')),
     contents TEXT
@@ -43,6 +43,8 @@ CREATE TABLE IF NOT EXISTS changelog (
 
 CREATE INDEX index_changelog_version ON changelog (version_id)
 """
+
+TABLENAME_WHITELIST = ["classes", "items", "spells"]
 
 class Database:
     def __init__(self):
@@ -53,6 +55,10 @@ class Database:
             self.connection.executescript(SQL_SCHEMA)
 
             print(self.connectionVerifier(self.cursor))
+
+            self.columnList = {} # FORMAT: "Table Name" : [List of Columns]
+            self.dbInitColumnNames() # Writes to columnList
+
             self.databaseInitialized = True
         except sqlite3.Error as error:
             print('An Error Occured on Database Initialization: ', error)
@@ -72,7 +78,7 @@ class Database:
         """path MUST be a raw string"""
         try:
             with open(path) as file:
-                        file = json.load(file)
+                file = json.load(file)
 
             return file
         except:
@@ -86,11 +92,21 @@ class Database:
         Note: Edits and Deletes default to content_id if there is no matching name, or multiple of the same named table rows
         """
 
-    def databaseADD(self, table: str, column_list: list, input_values: list):
-        self.cursor.execute(f'INSERT INTO {table} ({column_list}) VALUES ({input_values})')
+    def dbInitColumnNames(self):
+        for table_name in TABLENAME_WHITELIST:
+            base_info = self.cursor.execute(f'PRAGMA table_info({table_name})')
+            columnNames = [col[1] for col in base_info]
 
-    def databaseEDIT(self, table: str, column_list: list, input_values: list):
-        print()
+            self.columnList[table_name] = columnNames
+
+    def databaseADD(self, table: str, input_values: list):
+        self.cursor.execute(f'INSERT INTO {table} ({", ".join(self.columnList[table][1:])}) VALUES ({"?"+(", ?"*(len(input_values) - 1))})', input_values)
+
+    def databaseEDIT(self, table: str, input_values: list, content_id: int):
+        self.cursor.execute(f'UPDATE {table} SET {" = ?, ".join(self.columnList[table][1:])} = ? WHERE {self.columnList[table][0]} = ?', (input_values + [content_id]))
+
+    def databaseDELETE(self, table: str, content_id: int):
+       self.cursor.execute(f'DELETE FROM {table} WHERE {self.columnList[table][0]} = ?', (content_id,))
 
         
         
