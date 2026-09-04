@@ -1,5 +1,10 @@
 import sqlite3
 import json
+import decimal
+
+# Table Formatting Notes
+# All client usable data should be formatted as follows
+# content_id NOT NULL, content_name NOT NULL, trailing additional and optional fields which may vary by table
 
 '''
 Going to need a broad scale modification of systems to account for the write system
@@ -8,26 +13,27 @@ Going to need a broad scale modification of systems to account for the write sys
 SQL_SCHEMA = """
 CREATE TABLE IF NOT EXISTS version_control (
     version_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    display_version_id TEXT NOT NULL,
     version_description TEXT,
     version_charsize INTEGER
 );
 
-CREATE TABLE IF NOT EXISTS classes (
-    class_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    class_name TEXT NOT NULL,
+CREATE TABLE IF NOT EXISTS class (
+    content_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    content_name TEXT NOT NULL,
     class_description TEXT
 );
 
-CREATE TABLE IF NOT EXISTS items (
-    item_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    item_name TEXT NOT NULL,
-    item_type TEXT NOT NULL,
+CREATE TABLE IF NOT EXISTS item (
+    content_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    content_name TEXT NOT NULL,
+    item_type TEXT,
     item_description TEXT
 );
 
-CREATE TABLE IF NOT EXISTS spells (
-    spell_id INTEGER PRIMARY KEY AUTOINCREMENT,
-    spell_name TEXT NOT NULL,
+CREATE TABLE IF NOT EXISTS spell (
+    content_id INTEGER PRIMARY KEY AUTOINCREMENT,
+    content_name TEXT NOT NULL,
     spell_school TEXT,
     spell_description TEXT
 );
@@ -35,8 +41,8 @@ CREATE TABLE IF NOT EXISTS spells (
 CREATE TABLE IF NOT EXISTS changelog (
     internal_id INTEGER PRIMARY KEY AUTOINCREMENT,
     version_id INTEGER NOT NULL REFERENCES version_control(version_id),
-    content_type TEXT NOT NULL CHECK (content_type IN ('item', 'class', 'spell')),
     content_id INTEGER NOT NULL,
+    content_type TEXT NOT NULL CHECK (content_type IN ('item', 'class', 'spell')),
     change_type TEXT NOT NULL CHECK (change_type IN ('ADD', 'EDIT', 'DELETE')),
     contents TEXT
 );
@@ -44,7 +50,9 @@ CREATE TABLE IF NOT EXISTS changelog (
 CREATE INDEX index_changelog_version ON changelog (version_id)
 """
 
-TABLENAME_WHITELIST = ["classes", "items", "spells"]
+# NOTE: Contents inside changelogs is a variable length list that contains all columns excluding the content_id and content_name
+
+TABLENAME_WHITELIST = ["class", "item", "spell"]
 
 class Database:
     def __init__(self):
@@ -84,13 +92,26 @@ class Database:
         except:
             return False
 
-    def databaseWriter(self, versionDescription: str, version: list):
-        """versionDescription: Description of the version
-        version: A List of Lists containing the updates being made in the new version
-        version format: [Version Description], LIST OF ROWS : [format varies by table]
+    def databaseWriter(self, versionDescription: str, versionContents: dict):
 
-        Note: Edits and Deletes default to content_id if there is no matching name, or multiple of the same named table rows
-        """
+        versionCharsize = 0
+
+        currentVersionID = self.version_control_writer(versionDescription, versionCharsize)
+
+    def version_control_writer(self, version_description: str, version_charsize: int) -> int:
+        """Writes the basic version_control table entry and returns the current internal version index. 
+        All code uses this index for versioning, the alternative display_version is purely for clients/public viewing and has no bearing on code"""
+        lastVersion = self.readLatestDisplayVersion()
+
+        if not lastVersion:
+            lastVersion = '0.0'
+
+        currentVersion = decimal.Decimal(lastVersion) + decimal.Decimal('0.1')
+        formattedDecimal = str(currentVersion)
+        self.cursor.execute(f'INSERT INTO version_control (display_version_id, version_description, version_charsize) VALUES (?, ?, ?) RETURNING version_id', [formattedDecimal, version_description, version_charsize])
+        versionID = self.cursor.fetchone()[0]
+
+        return versionID
 
     def dbInitColumnNames(self):
         for table_name in TABLENAME_WHITELIST:
@@ -106,10 +127,21 @@ class Database:
         self.cursor.execute(f'UPDATE {table} SET {" = ?, ".join(self.columnList[table][1:])} = ? WHERE {self.columnList[table][0]} = ?', (input_values + [content_id]))
 
     def databaseDELETE(self, table: str, content_id: int):
-       self.cursor.execute(f'DELETE FROM {table} WHERE {self.columnList[table][0]} = ?', (content_id,))
+        self.cursor.execute(f'DELETE FROM {table} WHERE {self.columnList[table][0]} = ?', (content_id,))
+        
+    def readLatestDisplayVersion(self) -> str:
+        self.cursor.execute('SELECT display_version_id FROM version_control ORDER BY version_id DESC LIMIT 1')
+        result = self.cursor.fetchone()
+        if result:
+            result = result[0]
+        else:
+            result = None
 
-        
-        
+        return result
+
+# TABLE FORMATTING: content_id NOT NULL, content_name NOT NULL, trailing additional and optional fields which may vary by table
+# CHANGELOG FORMATTING: internal_id (Changelog key), version_id (version_control table index link), content_id (sub table id (classes/items/spells)), content_type (item/spell/class), change_type (ADD/EDIT/DELETE), contents
+# - CONTENTS CONT: contents is a list that will contain all columns in order of each table excluding the content_id. The first item will always be the name.
 
     def readSingleVersion(self, version: int) -> list:
         """Returns a LIST of all changelog entries pertaining to the provided version.
@@ -131,7 +163,8 @@ class Database:
 
         content_type_hash = {
             "item":"i",
-            "class":"c"
+            "class":"c",
+            "spell":"s"
         }
 
         formatedList = []
