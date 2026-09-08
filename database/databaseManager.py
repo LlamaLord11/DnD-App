@@ -171,29 +171,6 @@ class Database:
 
         return formattedVersionList
 
-    # def versionListFormatterOld(self, versionList):
-    #     """Outputs a list of lists. Each internal list represents 1 entry
-    #     \nENTRY FORMATTING: change_type (ADD + / EDIT > / DELETE -), content_type (item i / class c), content_id, content"""
-
-    #     change_type_hash = {
-    #         "ADD":"+",
-    #         "EDIT":'>',
-    #         "DELETE":"-"
-    #     }
-
-    #     content_type_hash = {
-    #         "item":"i",
-    #         "class":"c",
-    #         "spell":"s"
-    #     }
-
-    #     formatedList = []
-
-    #     for row in versionList:
-    #         formatedList.append([change_type_hash[row[4]], content_type_hash[row[2]], row[3], json.loads(row[5])])
-
-    #     return json.dumps(formatedList, separators=(',', ':'))
-
     def jsonStringMaker(self, inputDictionary):
         # No need to hash ADD/EDIT/DELETE/Table type. At scale, it is a negligable data size reduction
         return json.dumps(inputDictionary, separators=(',', ':'))
