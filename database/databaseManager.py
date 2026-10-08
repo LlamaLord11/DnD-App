@@ -47,7 +47,7 @@ CREATE TABLE IF NOT EXISTS changelog (
     contents TEXT
 );
 
-CREATE INDEX index_changelog_version ON changelog (version_id)
+CREATE INDEX IF NOT EXISTS index_changelog_version ON changelog (version_id)
 """
 
 # NOTE: Contents inside changelogs is a variable length list that contains all columns excluding the content_id and content_name
@@ -79,16 +79,25 @@ class Database:
         result = cursor.fetchall()
         return('SQLite is running and the version is {}'.format(result[0][0]))
 
+    # self.columnList initializer
+
+    def dbInitColumnNames(self):
+            for table_name in TABLENAME_WHITELIST:
+                base_info = self.cursor.execute(f'PRAGMA table_info({table_name})')
+                columnNames = [col[1] for col in base_info]
+    
+                self.columnList[table_name] = columnNames
+
     # System Writing Pipeline Mockup
     # OVERVIEW: JSON File -> list -> database write
 
     def jsonFileReader(self, path: str):
-        """path MUST be a raw string"""
+        """Takes in Input JSON File Path and returns Python Dictionary of Contents\npath MUST be a raw string"""
         try:
-            with open(path) as file:
-                file = json.load(file)
+            with open(path, "r") as rawJsonFile:
+                jsonInputDictionary = json.load(rawJsonFile)
 
-            return file
+            return jsonInputDictionary
         except:
             return False
 
@@ -112,13 +121,6 @@ class Database:
         versionID = self.cursor.fetchone()[0]
 
         return versionID
-
-    def dbInitColumnNames(self):
-        for table_name in TABLENAME_WHITELIST:
-            base_info = self.cursor.execute(f'PRAGMA table_info({table_name})')
-            columnNames = [col[1] for col in base_info]
-
-            self.columnList[table_name] = columnNames
 
     def databaseADD(self, table: str, input_values: list):
         self.cursor.execute(f'INSERT INTO {table} ({", ".join(self.columnList[table][1:])}) VALUES ({"?"+(", ?"*(len(input_values) - 1))})', input_values)
